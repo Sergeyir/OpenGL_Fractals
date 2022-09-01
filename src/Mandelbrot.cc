@@ -7,6 +7,21 @@
 #include <iostream>
 #include "../lib/Palette.h"
 
+struct
+{
+	int x_pos = 0;
+	int y_pos = 0;
+}mouse;
+
+struct
+{
+	const unsigned int size_x = 1920;
+	const unsigned int size_y = 1080;
+}window;
+
+double zoom = 1.;
+double max_iter_change = 2.;
+
 using namespace std;
 
 void drawFrac()
@@ -17,28 +32,26 @@ void drawFrac()
 	glClear(GL_COLOR_BUFFER_BIT);
 	glOrtho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
 
-	const unsigned int window_size_x = 1920;
-	const unsigned int window_size_y = 1080;
+	if (zoom > max_iter_change*2) max_iter_change*=2;
+	else if (zoom < max_iter_change/2) max_iter_change/=2;
 
-	for (int x = 0; x <= window_size_x; x++)
+	for (int x = 0; x <= window.size_x; x++)
 	{
-		for (int y = 0; y <= window_size_y; y++) 
+		for (int y = 0; y <= window.size_y; y++) 
 		{
-			//re_z = x_pos;
-			double x_pos = ((double) x/window_size_x-0.5)*4. + 0.5;
-			double y_pos = ((double) y/window_size_y-0.5)*4.;
+			//pooint position
+			double x_pos = ((double) x/window.size_x-0.5)*4. + 0.5;
+			double y_pos = ((double) y/window.size_y-0.5)*4.;
 
-			double c_x = ((double) x/window_size_x-0.5)*4.0;
-			double c_y = ((double) y/window_size_y-0.5)*4.0;
+			double c_x = ((double) (x - 0.5 + mouse.x_pos/2)/zoom/window.size_x-0.5)*4.0;
+			double c_y = ((double) (y - 0.5 + mouse.y_pos/2)/zoom/window.size_y-0.5)*4.0;
 
 			double re_z = 0.0;
 			double im_z = 0.0;
 
 			long int iter = 0;
 			
-			//cout << re_z << " " << im_z << " " << iter << " " << endl;
-
-			const unsigned int iter_max = 100;
+			double iter_max = 100.*pow(max_iter_change - 1., 2);
 
 			while (iter <= iter_max && re_z*re_z +im_z*im_z <= 4.0)
 			{
@@ -73,19 +86,54 @@ void drawFrac()
 	glFlush();
 }
 
+void mouseClick(int btn, int state, int x, int y) {
+	if (state == GLUT_DOWN)
+	{
+		switch(btn)
+		{
+		case GLUT_LEFT_BUTTON:
+			break;
+
+		case GLUT_RIGHT_BUTTON:
+			break;
+
+		case GLUT_MIDDLE_BUTTON:
+			break;
+
+		case 3:
+			zoom *= 1.05;
+			std::cout << "Zoom now is " << zoom << "\r";
+			std::cout.flush();
+			break;
+
+		case 4:
+			zoom /= 1.05;
+			std::cout << "Zoom now is " << zoom << "\r";
+			std::cout.flush();
+			break;
+
+		default:
+			break;
+		}
+	}
+	mouse.x_pos = x;
+	mouse.y_pos = y;
+	
+	glutPostRedisplay();
+}
+
 int main(int argc, char **argv)
 {
-
-	const int window_size_x = 1920;
-	const int window_size_y = 1080;
-
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_SINGLE);
-    glutInitWindowSize(window_size_x, window_size_y);
-    glutInitWindowPosition(0, 0);
-    glutCreateWindow("OpenGL - Mandelbrot set");
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_SINGLE);
+	glutInitWindowSize(window.size_x, window.size_y);
+	glutInitWindowPosition(0, 0);
+	glutCreateWindow("OpenGL - Mandelbrot set");
 	glutDisplayFunc(drawFrac);
-    glutMainLoop();
 
-    return 0;
+	glutMouseFunc(mouseClick);
+
+	glutMainLoop();
+
+	return 0;
 }
