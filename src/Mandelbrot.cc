@@ -23,8 +23,8 @@ struct
 
 struct
 {
-	int x_pos = 0.;
-	int y_pos = 0.;
+	double x_pos = 0.;
+	double y_pos = 0.;
 }mouse;
 
 void quit()
@@ -46,51 +46,63 @@ void drawFrac()
 	show_options(option.zoom, option.iter_max);
 	array<float, 3> color;
 
-	//glClearColor(0.4, 0.4, 0.4, 0.4);
 	glClear(GL_COLOR_BUFFER_BIT);
 	glOrtho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
 
-	double shift_x = -mouse.x_pos-window.size_x/2.;
-	double shift_y = -mouse.y_pos-window.size_y/2.;
+	double shift_x = mouse.x_pos-2.;
+	double shift_y = mouse.y_pos-2.;
 
 	for (int x = 0; x <= window.size_x; x++)
 	{
 		for (int y = 0; y <= window.size_y; y++) 
 		{
-			//pooint position
-			double x_pos = ((double) x/window.size_x-0.5)*4.+0.5;
-			double y_pos = ((double) y/window.size_y-0.5)*4.;
+			//point position
+			double x_pos = ((double) x/window.size_x-0.5)*2.;
+			double y_pos = ((double) y/window.size_y-0.5)*2.;
 
-			double c_x = ((double) (x+shift_x)/option.zoom/window.size_x)*4.0;
-			double c_y = ((double) (y+shift_y)/option.zoom/window.size_y)*4.0;
+			//c real and imaginary parts
+			double re_c = ((double) x/option.zoom/window.size_x)*4.0 + shift_x/option.zoom;
+			double im_c = ((double) y/option.zoom/window.size_y)*4.0 + shift_y/option.zoom;
 
+			//z real and imaginary parts
 			double re_z = 0.0;
 			double im_z = 0.0;
 
-			long int iter = 0;
+			double iter = 0;
 			
-			while (iter <= option.iter_max && re_z*re_z +im_z*im_z <= 4.0)
+			if (pow(mouse.x_pos - x_pos, 2) + pow(mouse.y_pos - y_pos, 2) < 0.0001)
 			{
-
-				double re_z_temp = re_z*re_z - im_z*im_z + c_x;
-				im_z = 2*re_z*im_z + c_y;
-				re_z = re_z_temp;
-
-				iter++;
-			}
-
-			if (iter < option.iter_max)
-			{
-				float col_val = (float) iter/option.iter_max;
-
-				color[0] = OceanPalette.R(col_val);
-				color[1] = OceanPalette.G(col_val);
-				color[2] = OceanPalette.B(col_val);
-
+				color[0] = 1.;
+				color[1] = 0.;
+				color[2] = 0.;
 				glColor3f(color[0], color[1], color[2]);
 			}
 
-			else glColor3f(0, 0, 0);
+			else
+			{
+				while (iter <= option.iter_max && re_z*re_z +im_z*im_z <= 4.0)
+				{
+					//f(z) = z^2 + c
+					double re_z_temp = re_z*re_z - im_z*im_z + re_c;
+					im_z = 2*re_z*im_z + im_c;
+					re_z = re_z_temp;
+
+					iter++;
+				}
+
+				if (iter < option.iter_max)
+				{
+					float col_val = (float) iter/option.iter_max;
+
+					color[0] = OceanPalette.R(col_val);
+					color[1] = OceanPalette.G(col_val);
+					color[2] = OceanPalette.B(col_val);
+
+					glColor3f(color[0], color[1], color[2]);
+				}
+
+				else glColor3f(0, 0, 0);
+			}
 
 			glBegin(GL_POINTS);
 			glVertex2f(x_pos, y_pos);
@@ -102,12 +114,21 @@ void drawFrac()
 	glFlush();
 }
 
+void mousePosition(int x, int y)
+{
+	mouse.x_pos = ((double) x/glutGet(GLUT_WINDOW_WIDTH)-0.5)*2.;
+	mouse.y_pos = (1. - (double) y/glutGet(GLUT_WINDOW_HEIGHT)-0.5)*2.;
+}
+
 void mouseClick(int key, int state, int x, int y) {
 	if (state == GLUT_DOWN)
 	{
-	cout << x << " " << y << endl;
 		switch(key)
 		{
+		case 0:
+			mouse.x_pos = ((double) x/glutGet(GLUT_WINDOW_WIDTH)-0.5)*2.;
+			mouse.y_pos = (1. - (double) y/glutGet(GLUT_WINDOW_HEIGHT)-0.5)*2.;
+			break;
 		case 3:
 			option.zoom *= 1.05;
 			break;
@@ -119,9 +140,6 @@ void mouseClick(int key, int state, int x, int y) {
 		default:
 			return;
 		}
-		mouse.x_pos = x;
-		mouse.y_pos = y;
-	
 		glutPostRedisplay();
 	}
 }
@@ -175,6 +193,7 @@ int main(int argc, char **argv)
 	glutDisplayFunc(drawFrac);
 
 	glutMouseFunc(mouseClick);
+
 	glutSpecialFunc(special_keys);
 	glutKeyboardFunc(keyboard);
 
