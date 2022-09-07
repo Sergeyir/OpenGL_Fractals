@@ -7,13 +7,17 @@
 #include <string>
 #include "../lib/Palette.h"
 
+//OceanPalette palette;
+//CrimsonPalette palette;
+SynthPalette palette;
+
 struct
 {
 	double iter_max = 10.;
 	double zoom = 1.;
 }option;
 
-//default size
+//default window size
 struct
 {
 	unsigned int size_x = 1920;
@@ -58,8 +62,18 @@ void DrawInfo()
 	info.append(std::to_string((int) option.iter_max));
 	const unsigned char* text = reinterpret_cast<const unsigned char *>( info.c_str() );
 
-	DrawText(0.2, -0.9, color, GLUT_BITMAP_TIMES_ROMAN_24, text);
-	DrawText(0.2, -0.95, color, GLUT_BITMAP_HELVETICA_18, reinterpret_cast<const unsigned char *>( "press esc to exit" ));
+	DrawText(0.1, -0.9, color, GLUT_BITMAP_TIMES_ROMAN_24, text);
+	DrawText(0.3, -0.95, color, GLUT_BITMAP_HELVETICA_18, reinterpret_cast<const unsigned char *>( "press esc to exit" ));
+}
+
+void SetPointColor(double col_val)
+{
+	RGB color;
+	color.red = palette.R(col_val);
+	color.green = palette.G(col_val);
+	color.blue = palette.B(col_val);
+	
+	glColor3f(color.red, color.green, color.blue);
 }
 
 void drawFrac()
@@ -69,15 +83,10 @@ void drawFrac()
 	window.size_x = glutGet(GLUT_WINDOW_WIDTH);
 	window.size_y = glutGet(GLUT_WINDOW_HEIGHT);
 
-	RGB color;
-
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	double shift_x = (mouse.x_pos)*(1.-1/option.zoom)-2./option.zoom;
-	double shift_y = (mouse.y_pos)*(1.-1/option.zoom)-2./option.zoom;
-
-	//OceanPalette palette;
-	CrimsonPalette palette;
+	double shift_x = (mouse.x_pos)*(1.-1./option.zoom);
+	double shift_y = (mouse.y_pos)*(1.-1./option.zoom);
 
 	for (int x = 0; x <= window.size_x; x++)
 	{
@@ -88,8 +97,8 @@ void drawFrac()
 			double y_pos = ((double) y/window.size_y-0.5)*2.;
 
 			//c real and imaginary parts
-			double re_c = ((double) x/option.zoom/window.size_x)*4.0 + shift_x;
-			double im_c = ((double) y/option.zoom/window.size_y)*4.0 + shift_y;
+			double re_c = ((double) x/option.zoom/window.size_x)*4.0 - 2./option.zoom + shift_x;
+			double im_c = ((double) y/option.zoom/window.size_y)*4.0 - 2./option.zoom + shift_y;
 
 			//z real and imaginary parts
 			double re_z = 0.0;
@@ -110,15 +119,10 @@ void drawFrac()
 			if (iter < option.iter_max)
 			{
 				float col_val = (float) iter/option.iter_max;
-
-				color.red = palette.R(col_val);
-				color.green = palette.G(col_val);
-				color.blue = palette.B(col_val);
-
-				glColor3f(color.red, color.green, color.blue);
+				SetPointColor(col_val);
 			}
 
-			else glColor3f(0, 0, 0);
+			else SetPointColor(0);
 
 			glBegin(GL_POINTS);
 			glVertex2f(x_pos, y_pos);
@@ -132,8 +136,8 @@ void drawFrac()
 
 void mousePosition(int x, int y)
 {
-	mouse.x_pos = ((double) x/glutGet(GLUT_WINDOW_WIDTH)-0.5)*2.;
-	mouse.y_pos = (1. - (double) y/glutGet(GLUT_WINDOW_HEIGHT)-0.5)*2.;
+	mouse.x_pos = ((double) x/glutGet(GLUT_WINDOW_WIDTH)-0.5)*4.;
+	mouse.y_pos = (1. - (double) y/glutGet(GLUT_WINDOW_HEIGHT)-0.5)*4.;
 }
 
 void mouseClick(int key, int state, int x, int y) {
@@ -144,7 +148,6 @@ void mouseClick(int key, int state, int x, int y) {
 		switch(key)
 		{
 		case 0:
-			std::cout << mouse.x_pos << " " << mouse.y_pos << std::endl;
 			return;
 		case 3:
 			option.zoom *= 1.05;
@@ -174,11 +177,11 @@ void special_keys(int key, int x, int y)
 			break;
 
 		case GLUT_KEY_LEFT:
-			option.iter_max--;
+			option.iter_max /= 1.1;
 			break;
 
 		case GLUT_KEY_RIGHT:
-			option.iter_max++;
+			option.iter_max *= 1.1;
 			break;
 
 		default:
