@@ -1,6 +1,6 @@
 #include <cmath>
 
-struct
+struct OceanPalette
 {
 	float R(float col_val)
 	{
@@ -8,12 +8,29 @@ struct
 	}
 	float G(float col_val)
 	{
-		float val = sqrt(col_val);
+		float val = 0.8*sqrt(col_val);
 		return val;
 	}
 	float B(float col_val)
 	{
-		float val = pow(col_val, 1./4.);
+		float val = 0.9*pow(col_val, 1./4.);
 		return val;
 	}
-} OceanPalette;
+};
+
+struct CrimsonPalette
+{
+	float R(float col_val)
+	{
+		float val = 0.8*pow(col_val, 1./4.);
+		return val;
+	}
+	float G(float col_val)
+	{
+		return 0;
+	}
+	float B(float col_val)
+	{
+		return 0;
+	}
+};

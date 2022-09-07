@@ -3,11 +3,9 @@
 
 #include "GL/freeglut.h"
 #include "GL/gl.h"
-#include <array>
 #include <iostream>
+#include <string>
 #include "../lib/Palette.h"
-
-using namespace std;
 
 struct
 {
@@ -15,6 +13,7 @@ struct
 	double zoom = 1.;
 }option;
 
+//default size
 struct
 {
 	unsigned int size_x = 1920;
@@ -27,30 +26,58 @@ struct
 	double y_pos = 0.;
 }mouse;
 
+struct RGB
+{
+	float red;
+	float green;
+	float blue;
+};
+
 void quit()
 {
 	exit(0);
 }
 
-void show_options(double zoom, double iter_max)
+void DrawText(float x, float y, RGB color, void *font, const unsigned char *text)
 {
-	std::cout << "Zoom: " << zoom << "     Iter max: " << iter_max << "     " << "\r";
-	std::cout.flush();
+	glColor3f(color.red, color.green, color.blue); 
+	glRasterPos2f(x, y);
+	glutBitmapString(font, text);
+}
+
+void DrawInfo()
+{
+	RGB color;
+	color.red = 1;
+	color.green = 0.8;
+	color.blue = 0.3;
+
+	std::string info = "Zoom: ";
+	info.append(std::to_string(option.zoom));
+	info.append("    Iter max: ");
+	info.append(std::to_string((int) option.iter_max));
+	const unsigned char* text = reinterpret_cast<const unsigned char *>( info.c_str() );
+
+	DrawText(0.2, -0.9, color, GLUT_BITMAP_TIMES_ROMAN_24, text);
+	DrawText(0.2, -0.95, color, GLUT_BITMAP_HELVETICA_18, reinterpret_cast<const unsigned char *>( "press esc to exit" ));
 }
 
 void drawFrac()
 {
+	
+	//in case window size changes
 	window.size_x = glutGet(GLUT_WINDOW_WIDTH);
 	window.size_y = glutGet(GLUT_WINDOW_HEIGHT);
 
-	show_options(option.zoom, option.iter_max);
-	array<float, 3> color;
+	RGB color;
 
 	glClear(GL_COLOR_BUFFER_BIT);
-	glOrtho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
 
-	double shift_x = mouse.x_pos-2.;
-	double shift_y = mouse.y_pos-2.;
+	double shift_x = (mouse.x_pos)*(1.-1/option.zoom)-2./option.zoom;
+	double shift_y = (mouse.y_pos)*(1.-1/option.zoom)-2./option.zoom;
+
+	//OceanPalette palette;
+	CrimsonPalette palette;
 
 	for (int x = 0; x <= window.size_x; x++)
 	{
@@ -61,8 +88,8 @@ void drawFrac()
 			double y_pos = ((double) y/window.size_y-0.5)*2.;
 
 			//c real and imaginary parts
-			double re_c = ((double) x/option.zoom/window.size_x)*4.0 + shift_x/option.zoom;
-			double im_c = ((double) y/option.zoom/window.size_y)*4.0 + shift_y/option.zoom;
+			double re_c = ((double) x/option.zoom/window.size_x)*4.0 + shift_x;
+			double im_c = ((double) y/option.zoom/window.size_y)*4.0 + shift_y;
 
 			//z real and imaginary parts
 			double re_z = 0.0;
@@ -70,47 +97,36 @@ void drawFrac()
 
 			double iter = 0;
 			
-			if (pow(mouse.x_pos - x_pos, 2) + pow(mouse.y_pos - y_pos, 2) < 0.0001)
+			while (iter <= option.iter_max && re_z*re_z +im_z*im_z <= 4.0)
 			{
-				color[0] = 1.;
-				color[1] = 0.;
-				color[2] = 0.;
-				glColor3f(color[0], color[1], color[2]);
+				//using f(z) = z^2 + c iteratevly
+				double re_z_temp = re_z*re_z - im_z*im_z + re_c;
+				im_z = 2*re_z*im_z + im_c;
+				re_z = re_z_temp;
+
+				iter++;
 			}
 
-			else
+			if (iter < option.iter_max)
 			{
-				while (iter <= option.iter_max && re_z*re_z +im_z*im_z <= 4.0)
-				{
-					//f(z) = z^2 + c
-					double re_z_temp = re_z*re_z - im_z*im_z + re_c;
-					im_z = 2*re_z*im_z + im_c;
-					re_z = re_z_temp;
+				float col_val = (float) iter/option.iter_max;
 
-					iter++;
-				}
+				color.red = palette.R(col_val);
+				color.green = palette.G(col_val);
+				color.blue = palette.B(col_val);
 
-				if (iter < option.iter_max)
-				{
-					float col_val = (float) iter/option.iter_max;
-
-					color[0] = OceanPalette.R(col_val);
-					color[1] = OceanPalette.G(col_val);
-					color[2] = OceanPalette.B(col_val);
-
-					glColor3f(color[0], color[1], color[2]);
-				}
-
-				else glColor3f(0, 0, 0);
+				glColor3f(color.red, color.green, color.blue);
 			}
+
+			else glColor3f(0, 0, 0);
 
 			glBegin(GL_POINTS);
 			glVertex2f(x_pos, y_pos);
 			glEnd();
-
 		}
 	}
 
+	DrawInfo();
 	glFlush();
 }
 
@@ -121,14 +137,15 @@ void mousePosition(int x, int y)
 }
 
 void mouseClick(int key, int state, int x, int y) {
+
 	if (state == GLUT_DOWN)
 	{
+		mousePosition(x,y);
 		switch(key)
 		{
 		case 0:
-			mouse.x_pos = ((double) x/glutGet(GLUT_WINDOW_WIDTH)-0.5)*2.;
-			mouse.y_pos = (1. - (double) y/glutGet(GLUT_WINDOW_HEIGHT)-0.5)*2.;
-			break;
+			std::cout << mouse.x_pos << " " << mouse.y_pos << std::endl;
+			return;
 		case 3:
 			option.zoom *= 1.05;
 			break;
