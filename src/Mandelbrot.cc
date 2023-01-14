@@ -28,9 +28,9 @@ struct
 
 struct RGB
 {
-	float red;
-	float green;
-	float blue;
+	double red;
+	double green;
+	double blue;
 };
 
 void quit()
@@ -38,7 +38,7 @@ void quit()
 	exit(0);
 }
 
-void DrawText(float x, float y, RGB color, void *font, const unsigned char *text)
+void DrawText(double x, double y, RGB color, void *font, const unsigned char *text)
 {
 	glColor3f(color.red, color.green, color.blue); 
 	glRasterPos2f(x, y);
@@ -76,6 +76,7 @@ void drawFrac()
 	double shift_x = (mouse.x_pos)*(1.-1/option.zoom)-2./option.zoom;
 	double shift_y = (mouse.y_pos)*(1.-1/option.zoom)-2./option.zoom;
 
+	//Neon palette;
 	//OceanPalette palette;
 	CrimsonPalette palette;
 
@@ -99,9 +100,9 @@ void drawFrac()
 			
 			while (iter <= option.iter_max && re_z*re_z +im_z*im_z <= 4.0)
 			{
-				//using f(z) = z^2 + c iteratevly
+				//calculating f(z) = z^2 + c iteratevly
 				double re_z_temp = re_z*re_z - im_z*im_z + re_c;
-				im_z = 2*re_z*im_z + im_c;
+				im_z = 2.*re_z*im_z + im_c;
 				re_z = re_z_temp;
 
 				iter++;
@@ -109,7 +110,7 @@ void drawFrac()
 
 			if (iter < option.iter_max)
 			{
-				float col_val = (float) iter/option.iter_max;
+				double col_val = (double) iter/option.iter_max;
 
 				color.red = palette.R(col_val);
 				color.green = palette.G(col_val);
